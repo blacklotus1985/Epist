@@ -45,7 +45,7 @@ stopwords = add_stopwords(main_path+'/data/stp-aggettivi.txt',stopwords=stopword
 stopwords = add_stopwords(main_path+'/data/stp-varie.txt',stopwords=stopwords)
 stopwords = add_stopwords(main_path+'/data/stp-verbi.txt',stopwords=stopwords)
 tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
-ft = fasttext.load_model(main_path+'/data/cc.it.300.bin')
+#ft = fasttext.load_model(main_path+'/data/cc.it.300.bin')
 cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger, column='testo')
 df = save_lemmatized_text(df=df,cleaned_coprus=cleaned_corpus,column_name='testo')
 

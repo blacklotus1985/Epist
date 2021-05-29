@@ -12,6 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 import configparser
 from datetime import datetime
+import re
 
 def add_stopwords(file,stopwords):
     with open(file) as f:
@@ -40,6 +41,7 @@ def lemmatize(text,tagger):
     cleaned_text = []
     for elem in tags:
         lemma = elem.lemma
+        lemma = re.sub(r'\w+\|\b', '', lemma)
         cleaned_text.append(lemma)
     text = ' '.join(cleaned_text)
     return text

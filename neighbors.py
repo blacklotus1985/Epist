@@ -13,28 +13,16 @@ import os
 import configparser
 from datetime import datetime
 
-skip = False
-if skip:
-
-    word1 = "mamma"
-    word2 = "madre"
-    word3 = "papà"
-    word4 = "Tirannosauro"
-    vec1 = ft.get_word_vector(word1)
-    vec2 = ft.get_word_vector(word2)
-    vec3 = ft.get_word_vector(word3)
-    vec4 = ft.get_word_vector(word4)
-
-    dist = np.round(distance.euclidean(vec1,vec2),4)
-
 conf = configparser.ConfigParser()
 main_path = os.getcwd()
 path = os.path.dirname(os.getcwd())
 conf.read(main_path+'\configurations\configurations.ini')
 skip = False
-def save_lemmatized_text(df,cleaned_coprus,column_name='testo'):
+def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=False):
     del df[column_name]
     df[column_name] = cleaned_coprus
+    if save:
+        df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
     return df
 
 df = pd.read_excel(os.getcwd()+conf.get("INPUT","metadati"),sheet_name=2)
@@ -45,11 +33,18 @@ stopwords = add_stopwords(main_path+'/data/stp-aggettivi.txt',stopwords=stopword
 stopwords = add_stopwords(main_path+'/data/stp-varie.txt',stopwords=stopwords)
 stopwords = add_stopwords(main_path+'/data/stp-verbi.txt',stopwords=stopwords)
 tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
-#ft = fasttext.load_model(main_path+'/data/cc.it.300.bin')
+ft = fasttext.load_model(main_path+'/data/cc.it.300.bin')
 cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger, column='testo')
-df = save_lemmatized_text(df=df,cleaned_coprus=cleaned_corpus,column_name='testo')
+df = save_lemmatized_text(df=df,cleaned_coprus=cleaned_corpus,column_name='testo',save=True)
 
+
+def neighbor_value(word,fasttext,k=20):
+    words= fasttext.get_nearest_neighbors(word,k)
+    df = pd.DataFrame(words,columns=['value','key'])
+    base_row = {'value':1,'key':word}
+    df = df.append(base_row,ignore_index=True)
+    return df
+
+df_neighbor = neighbor_value("cane",ft,10)
 print(1)
 
-def similarity_doc(df):
-    a = 1

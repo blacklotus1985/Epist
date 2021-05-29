@@ -123,5 +123,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# bin files
+# type of files
 *.bin
+*.xlsx

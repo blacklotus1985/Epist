@@ -32,8 +32,12 @@ main_path = os.getcwd()
 path = os.path.dirname(os.getcwd())
 conf.read(main_path+'\configurations\configurations.ini')
 skip = False
-df = pd.read_excel(os.getcwd()+conf.get("INPUT","metadati"),sheet_name=2)
+def save_lemmatized_text(df,cleaned_coprus,column_name='testo'):
+    del df[column_name]
+    df[column_name] = cleaned_coprus
+    return df
 
+df = pd.read_excel(os.getcwd()+conf.get("INPUT","metadati"),sheet_name=2)
 df = df[df['testo'].notna()]
 row_id = df['id_lettera'].values
 stopwords = get_stop_words('it')
@@ -42,7 +46,8 @@ stopwords = add_stopwords(main_path+'/data/stp-varie.txt',stopwords=stopwords)
 stopwords = add_stopwords(main_path+'/data/stp-verbi.txt',stopwords=stopwords)
 tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
 ft = fasttext.load_model(main_path+'/data/cc.it.300.bin')
-cleaned_corpus = clean_text(df, column='testo')
+cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger, column='testo')
+df = save_lemmatized_text(df=df,cleaned_coprus=cleaned_corpus,column_name='testo')
 
 print(1)
 

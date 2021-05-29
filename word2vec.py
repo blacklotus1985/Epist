@@ -69,7 +69,7 @@ def avg_w2vec(tf_idf_matrix,model):
     df_result = df_result/100
     return df_result
 
-def clean_text(df,column='testo'):
+def clean_text(df,stopwords,tagger,column='testo'):
     """
     clean dataframe of letters
     :param df: dataframe with metadata
@@ -78,12 +78,10 @@ def clean_text(df,column='testo'):
     """
     cleaned_corpus = []
     for elem in df[column]:
-        try:
-            elem = removeNonAlpha(elem)
-            elem = removeStopWords(elem)
-            elem = lemmatize(elem)
-        except:
-            pass
+        elem = removeNonAlpha(elem)
+        elem = removeStopWords(elem,stopwords=stopwords)
+        elem = lemmatize(elem,tagger)
+        pass
         cleaned_corpus.append(elem)
     return cleaned_corpus
 
@@ -110,14 +108,9 @@ if __name__ == '__main__':
     stopwords = add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
     tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
     ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
-
-    cleaned_corpus = clean_text(df, column='testo')
+    cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger,column='testo')
     df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus,rownames=row_id)
     final_result = avg_w2vec(df_tf_idf,model=ft)
-
-
-
-
     # calculate cosine similarity for the embedded vectors of the job positions
     cosine_sim = np.round(cosine_similarity(final_result, final_result),3)
     df_cosine = pd.DataFrame(cosine_sim,index=df.id_lettera, columns=df.id_lettera)

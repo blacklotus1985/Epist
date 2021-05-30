@@ -12,6 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 import configparser
 from datetime import datetime
+from collections import Counter
 
 conf = configparser.ConfigParser()
 main_path = os.getcwd()
@@ -25,7 +26,7 @@ def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=False):
         df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
     return df
 
-df = pd.read_excel(os.getcwd()+conf.get("INPUT","metadati"),sheet_name=2)
+df = pd.read_excel(os.getcwd()+conf.get("INPUT","lemmatized"))
 df = df[df['testo'].notna()]
 row_id = df['id_lettera'].values
 stopwords = get_stop_words('it')
@@ -38,13 +39,41 @@ cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger, column='testo'
 df = save_lemmatized_text(df=df,cleaned_coprus=cleaned_corpus,column_name='testo',save=True)
 
 
-def neighbor_value(word,fasttext,k=20):
+def neighbor_value(word,fasttext,k=10):
     words= fasttext.get_nearest_neighbors(word,k)
     df = pd.DataFrame(words,columns=['value','key'])
     base_row = {'value':1,'key':word}
     df = df.append(base_row,ignore_index=True)
     return df
 
-df_neighbor = neighbor_value("cane",ft,10)
+def calculate_similarity(new_letter, old_letter, fasttext, neighbors=10):
+    new_letter = new_letter.split()
+    old_letter = old_letter.split()
+    dict_counter = Counter(old_letter)
+    similarity_value = 0
+    final_list = []
+    for word in new_letter:
+        df_n = neighbor_value(word=word,fasttext=fasttext, k=neighbors)
+        all_words = list(set(df_n.key) & set(old_letter))
+        if len(all_words) > 0:
+            for elem in all_words:
+                count_words = dict_counter[elem]
+                value = df_n.loc[df_n['key'] == elem, 'value'].values[0]
+                dict = {"word":elem, "value":count_words*value}
+                final_list.append(dict)
+                new_letter[:] = [x for x in new_letter if x != elem]
+                similarity_value = similarity_value + value
+    similarity_value = similarity_value/len(old_letter)
+    return final_list, similarity_value
+
+
+final_list, similarity_value = calculate_similarity(df.loc[0,'testo'],df.loc[1,'testo'],fasttext=ft)
+print(1)
+
+
+pass
+
+
+
 print(1)
 

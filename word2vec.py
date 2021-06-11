@@ -22,9 +22,10 @@ def add_stopwords(file,stopwords):
         return stopwords
 
 def removeNonAlpha(text):
-	import re
-	text = re.sub("[^a-zA-Z0-9]+", " ",text)
-	return text
+    text = re.sub("[^a-zA-Z0-9]+", " ",text)
+    text = re.sub("#\S+", " ", text)
+    text = re.sub("@\S+", " ", text)
+    return text
 
 
 def removeStopWords(text,stopwords,remove_short_words=True):
@@ -87,8 +88,16 @@ def clean_text(df,stopwords,tagger,column='testo'):
         cleaned_corpus.append(elem)
     return cleaned_corpus
 
+def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
+    del df[column_name]
+    df[column_name] = cleaned_coprus
+    if save:
+        df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
+    return df
+
 def calculate_tf_idf(corpus,rownames):
-    cv = TfidfVectorizer(ngram_range=(1, 1), max_features=50000)
+    cv = TfidfVectorizer(ngram_range=(1, 1), max_features=50000,max_df=0.3
+                         )
     X = cv.fit_transform(corpus)
     Y = X.toarray()
     count_vect_df = pd.DataFrame(Y, columns=cv.get_feature_names(),index=rownames)
@@ -101,7 +110,6 @@ if __name__ == '__main__':
     conf.read(main_path + '\configurations\configurations.ini')
     skip = False
     df = pd.read_excel(os.getcwd() + conf.get("INPUT", "metadati"), sheet_name=2)
-
     df = df[df['testo'].notna()]
     row_id = df['id_lettera'].values
     stopwords = get_stop_words('it')
@@ -111,6 +119,7 @@ if __name__ == '__main__':
     tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
     ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
     cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger,column='testo')
+    df = save_lemmatized_text(df=df, cleaned_coprus=cleaned_corpus, column_name='testo', save=True)
     df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus,rownames=row_id)
     final_result = avg_w2vec(df_tf_idf,model=ft)
     # calculate cosine similarity for the embedded vectors of the job positions

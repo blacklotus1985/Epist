@@ -13,30 +13,22 @@ import os
 import configparser
 from datetime import datetime
 from collections import Counter
+from datetime import datetime
 
+start = datetime.now().strftime('%H-%M-%S')
 conf = configparser.ConfigParser()
 main_path = os.getcwd()
 path = os.path.dirname(os.getcwd())
 conf.read(main_path+'\configurations\configurations.ini')
-skip = False
-def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=False):
+
+def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
     del df[column_name]
     df[column_name] = cleaned_coprus
     if save:
         df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
     return df
 
-df = pd.read_excel(os.getcwd()+conf.get("INPUT","lemmatized"))
-df = df[df['testo'].notna()]
-row_id = df['id_lettera'].values
-stopwords = get_stop_words('it')
-stopwords = add_stopwords(main_path+'/data/stp-aggettivi.txt',stopwords=stopwords)
-stopwords = add_stopwords(main_path+'/data/stp-varie.txt',stopwords=stopwords)
-stopwords = add_stopwords(main_path+'/data/stp-verbi.txt',stopwords=stopwords)
-tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
-ft = fasttext.load_model(main_path+'/data/cc.it.300.bin')
-cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger, column='testo')
-df = save_lemmatized_text(df=df,cleaned_coprus=cleaned_corpus,column_name='testo',save=True)
+
 
 
 def neighbor_value(word,fasttext,k=10):
@@ -45,6 +37,7 @@ def neighbor_value(word,fasttext,k=10):
     base_row = {'value':1,'key':word}
     df = df.append(base_row,ignore_index=True)
     return df
+
 
 def calculate_similarity(new_letter, old_letter, fasttext, neighbors=10):
     new_letter = new_letter.split()
@@ -67,13 +60,34 @@ def calculate_similarity(new_letter, old_letter, fasttext, neighbors=10):
     return final_list, similarity_value
 
 
-final_list, similarity_value = calculate_similarity(df.loc[0,'testo'],df.loc[1,'testo'],fasttext=ft)
+dict_list = []
+if __name__ == '__main__':
+    df = pd.read_excel(os.getcwd() + conf.get("INPUT", "lemmatized"))
+    df = df[df['testo'].notna()]
+    df = df.set_index('id_lettera')
+    row_id = df.index
+
+    stopwords = get_stop_words('it')
+    stopwords = add_stopwords(main_path + '/data/stp-aggettivi.txt', stopwords=stopwords)
+    stopwords = add_stopwords(main_path + '/data/stp-varie.txt', stopwords=stopwords)
+    stopwords = add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
+    tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
+    ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
+    cleaned_corpus = clean_text(df, stopwords=stopwords, tagger=tagger, column='testo')
+    df = save_lemmatized_text(df=df, cleaned_coprus=cleaned_corpus, column_name='testo', save=False)
+    for i in range(df.shape[0]):
+        print("i ="+str(i))
+        final_list, similarity_value = calculate_similarity(df.loc[row_id[i],'testo'],df.loc['Michelangelo21','testo'],fasttext=ft)
+        dict = {"lettera_1":row_id[i],"lettera_2":"michelangelo_21","similarity":similarity_value}
+        dict_list.append(dict)
+        i= i+1
+    final_df = pd.DataFrame(dict_list)
+    final_df.to_excel(os.getcwd()+conf.get("OUTPUT","neighbors")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
 print(1)
 
 
-pass
+end = datetime.now().strftime('%H-%M-%S')
 
+print ("time of algorith" +str(end-start))
 
-
-print(1)
 

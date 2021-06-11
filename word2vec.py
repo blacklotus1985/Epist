@@ -13,6 +13,7 @@ import os
 import configparser
 from datetime import datetime
 import re
+import connection
 
 def add_stopwords(file,stopwords):
     with open(file) as f:
@@ -95,21 +96,32 @@ def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
         df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
     return df
 
-def calculate_tf_idf(corpus,rownames):
-    cv = TfidfVectorizer(ngram_range=(1, 1), max_features=50000,max_df=0.3
-                         )
+def calculate_tf_idf(corpus,rownames,max_df=0.4):
+    cv = TfidfVectorizer(ngram_range=(1, 1), max_features=50000,max_df=max_df)
     X = cv.fit_transform(corpus)
     Y = X.toarray()
     count_vect_df = pd.DataFrame(Y, columns=cv.get_feature_names(),index=rownames)
     return count_vect_df,X
 
+
+def graph_to_pandas(graph):
+    list = graph.nodes.match("Letter").all()
+    return pd.DataFrame(list)
+
+
 if __name__ == '__main__':
-    conf = configparser.ConfigParser()
+
+    conf = connection.get_conf()
+    graph = connection.connect(conf)
+    letters = graph_to_pandas(graph)
+
     main_path = os.getcwd()
     path = os.path.dirname(os.getcwd())
     conf.read(main_path + '\configurations\configurations.ini')
     skip = False
     df = pd.read_excel(os.getcwd() + conf.get("INPUT", "metadati"), sheet_name=2)
+    '''
+    
     df = df[df['testo'].notna()]
     row_id = df['id_lettera'].values
     stopwords = get_stop_words('it')
@@ -126,4 +138,5 @@ if __name__ == '__main__':
     cosine_sim = np.round(cosine_similarity(final_result, final_result),3)
     df_cosine = pd.DataFrame(cosine_sim,index=df.id_lettera, columns=df.id_lettera)
     df_cosine.to_excel(os.getcwd()+conf.get("OUTPUT","first_algorithm")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
+    '''
 

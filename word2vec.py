@@ -9,6 +9,8 @@ import os
 from datetime import datetime
 from src import connection
 from src import cleaner
+import treetaggerwrapper
+from src import cleaner
 
 def avg_w2vec(tf_idf_matrix,model):
     """
@@ -56,11 +58,11 @@ def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
         df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
     return df
 
-def calculate_tf_idf(corpus,max_df=0.4): # removed rownames as index of matrix cause no id for now
+def calculate_tf_idf(corpus,rownames, max_df=0.4): # removed rownames as index of matrix cause no id for now
     cv = TfidfVectorizer(ngram_range=(1, 1), max_features=50000,max_df=max_df)
     X = cv.fit_transform(corpus)
     Y = X.toarray()
-    count_vect_df = pd.DataFrame(Y, columns=cv.get_feature_names())# removed index = rownames
+    count_vect_df = pd.DataFrame(Y, columns=cv.get_feature_names(),index=rownames)# removed index = rownames
     return count_vect_df,X
 
 
@@ -79,19 +81,19 @@ if __name__ == '__main__':
     path = os.path.dirname(os.getcwd())
     
     df = df[df['transcription'].notna()]
-    #row_id = df['id_lettera'].values
+    row_id = df['letter_id'].values
     stopwords = get_stop_words('it')
     stopwords = cleaner.add_stopwords(main_path + '/data/stp-aggettivi.txt', stopwords=stopwords)
     stopwords = cleaner.add_stopwords(main_path + '/data/stp-varie.txt', stopwords=stopwords)
     stopwords = cleaner.add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
     tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
     ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
-    cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger,column=testo)
+    cleaned_corpus = cleaner.clean_text(df,stopwords=stopwords,tagger=tagger,column=testo)
     df = save_lemmatized_text(df=df, cleaned_coprus=cleaned_corpus, column_name=testo, save=True)
-    df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus) # rownames = row_id when switched to db
+    df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus,rownames=row_id) # rownames = row_id when switched to db
     final_result = avg_w2vec(df_tf_idf,model=ft)
     # calculate cosine similarity for the embedded vectors of the job positions
     cosine_sim = np.round(cosine_similarity(final_result, final_result),3)
-    df_cosine = pd.DataFrame(cosine_sim)
+    df_cosine = pd.DataFrame(cosine_sim, index=row_id,columns=[row_id])
     df_cosine.to_excel(os.getcwd()+conf.get("OUTPUT","first_algorithm")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
     print(datetime.now() - start)

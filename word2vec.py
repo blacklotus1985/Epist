@@ -2,55 +2,21 @@
 import pandas as pd
 import numpy as np
 import fasttext.util
-import nltk
-from scipy.spatial import distance
-import treetaggerwrapper
 from stop_words import get_stop_words
-import math
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import os
-import configparser
 from datetime import datetime
-import re
-import connection
-
-def add_stopwords(file,stopwords):
-    with open(file) as f:
-        contents = f.read()
-        contents = contents.splitlines()
-        stopwords.extend(contents)
-        return stopwords
-
-def removeNonAlpha(text):
-    text = re.sub("[^a-zA-Z0-9]+", " ",text)
-    text = re.sub("#\S+", " ", text)
-    text = re.sub("@\S+", " ", text)
-    return text
-
-
-def removeStopWords(text,stopwords,remove_short_words=True):
-    words = text.split()
-    if remove_short_words:
-        words = [i for i in words if len(i) > 2]
-    words = [word for word in words if not word in set(stopwords)]
-    text = ' '.join(words)
-    return text
-
-def lemmatize(text,tagger):
-    tags = tagger.tag_text(text)
-    tags = treetaggerwrapper.make_tags(tags)
-    cleaned_text = []
-    for elem in tags:
-        lemma = elem.lemma
-        lemma = re.sub(r'\w+\|\b', '', lemma)
-        cleaned_text.append(lemma)
-    text = ' '.join(cleaned_text)
-    return text
-
-
+from src import connection
+from src import cleaner
 
 def avg_w2vec(tf_idf_matrix,model):
+    """
+    calculates similarity results using w2vec average and tf idf matrix
+    :param tf_idf_matrix: tf idf matrix
+    :param model: fast text object
+    :return: results of similarities between texts
+    """
     words = list(tf_idf_matrix.columns)
     big_list = []
     small_list = []
@@ -73,23 +39,17 @@ def avg_w2vec(tf_idf_matrix,model):
     df_result = df_result/100
     return df_result
 
-def clean_text(df,stopwords,tagger,column='testo'):
-    """
-    clean dataframe of letters
-    :param df: dataframe with metadata
-    :param column: column to clean
-    :return: dataframe cleaned
-    """
-    cleaned_corpus = []
-    for elem in df[column]:
-        elem = removeNonAlpha(elem)
-        elem = removeStopWords(elem,stopwords=stopwords)
-        elem = lemmatize(elem,tagger)
-        pass
-        cleaned_corpus.append(elem)
-    return cleaned_corpus
+
 
 def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
+    """
+    save lemmatized text in dataframe
+    :param df: starting df with not lemmatized column
+    :param cleaned_coprus: lemmatized text
+    :param column_name: column name of lemmatized df
+    :param save: save to excel
+    :return:
+    """
     del df[column_name]
     df[column_name] = cleaned_coprus
     if save:
@@ -121,9 +81,9 @@ if __name__ == '__main__':
     df = df[df['transcription'].notna()]
     #row_id = df['id_lettera'].values
     stopwords = get_stop_words('it')
-    stopwords = add_stopwords(main_path + '/data/stp-aggettivi.txt', stopwords=stopwords)
-    stopwords = add_stopwords(main_path + '/data/stp-varie.txt', stopwords=stopwords)
-    stopwords = add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
+    stopwords = cleaner.add_stopwords(main_path + '/data/stp-aggettivi.txt', stopwords=stopwords)
+    stopwords = cleaner.add_stopwords(main_path + '/data/stp-varie.txt', stopwords=stopwords)
+    stopwords = cleaner.add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
     tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
     ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
     cleaned_corpus = clean_text(df,stopwords=stopwords,tagger=tagger,column=testo)

@@ -11,7 +11,6 @@ from src import connection
 from src import cleaner
 import treetaggerwrapper
 from src import cleaner
-
 def avg_w2vec(tf_idf_matrix,model):
     """
     calculates similarity results using w2vec average and tf idf matrix
@@ -55,7 +54,7 @@ def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
     del df[column_name]
     df[column_name] = cleaned_coprus
     if save:
-        df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
+        df.to_excel(os.getcwd()+'/data/df_lemmatized.xlsx',index=False)
     return df
 
 def calculate_tf_idf(corpus,rownames, max_df=0.4): # removed rownames as index of matrix cause no id for now
@@ -79,7 +78,6 @@ if __name__ == '__main__':
     testo = conf.get("ITEMS","testo")
     main_path = os.getcwd()
     path = os.path.dirname(os.getcwd())
-    
     df = df[df['transcription'].notna()]
     row_id = df['letter_id'].values
     stopwords = get_stop_words('it')

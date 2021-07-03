@@ -1,5 +1,6 @@
 import re
 import treetaggerwrapper
+import corrector
 
 
 def add_stopwords(file,stopwords):
@@ -24,6 +25,7 @@ def removeNonAlpha(text):
     text = re.sub("[^a-zA-Z0-9]+", " ",text)
     text = re.sub("#\S+", " ", text)
     text = re.sub("@\S+", " ", text)
+    text = text.lower()
     return text
 
 
@@ -69,7 +71,8 @@ def clean_text(df,stopwords,tagger,column='testo'):
     cleaned_corpus = []
     for elem in df[column]:
         elem = removeNonAlpha(elem)
-        elem = removeStopWords(elem,stopwords=stopwords)
         elem = lemmatize(elem,tagger)
+        elem = removeStopWords(elem,stopwords=stopwords)
+        elem = corrector.correct_letter(elem)
         cleaned_corpus.append(elem)
     return cleaned_corpus

@@ -88,4 +88,21 @@ if __name__ == '__main__':
     cosine_sim = np.round(cosine_similarity(final_result, final_result),3)
     df_cosine = pd.DataFrame(cosine_sim, index=row_id,columns=[row_id])
     df_cosine.to_excel(os.getcwd()+conf.get("OUTPUT","second_algorithm")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
+    a = df_cosine.to_numpy().flatten()
+    b = [x for x in a if x != 1]
+    b = np.array(b)
+    sort_index_array = np.argsort(b)
+    sorted_array = b[sort_index_array]
+    rslt = sorted_array[-20:]
+    rslt = rslt[1::2]
+    dict_list = []
+    for elem in rslt:
+        row, column = np.where(df_cosine == elem)
+        ind = list(zip(df_cosine.index[row], df_cosine.columns[column]))
+        dict = {"letters":ind, "value":elem}
+        dict_list.append(dict)
+
+    best_df = pd.DataFrame(dict_list,columns=['letters','value'])
+    best_df.to_excel(os.getcwd() + conf.get("OUTPUT", "best_df") + datetime.now().strftime("%d-%m-%y-%H-%M-%S") + ".xlsx")
+
     print(datetime.now() - start)

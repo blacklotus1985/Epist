@@ -11,6 +11,8 @@ from src import connection
 from src import cleaner
 import treetaggerwrapper
 from src import cleaner
+import converter
+
 def avg_w2vec(tf_idf_matrix,model):
     """
     calculates similarity results using w2vec average and tf idf matrix
@@ -84,12 +86,14 @@ if __name__ == '__main__':
     df_read = pd.read_excel(main_path + conf.get("INPUT","lemmatized"))
     cleaned_corpus = df_read.transcription.values.astype('U')
     df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus,rownames=row_id) # rownames = row_id when switched to db
+    converted_df = converter.calculate_dataframe(df_tf_idf,model=ft)
+    df_mix = converter.calculate_vec(converted_df, ft, df_tf_idf, "Giorgio Vasari-Cosimo De' Medici-11/09/1569-1281")
     final_result = avg_w2vec(df_tf_idf,model=ft)
     cosine_sim = np.round(cosine_similarity(final_result, final_result),3)
     df_cosine = pd.DataFrame(cosine_sim, index=row_id,columns=[row_id])
     df_cosine.to_excel(os.getcwd()+conf.get("OUTPUT","second_algorithm")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
     a = df_cosine.to_numpy().flatten()
-    b = [x for x in a if x != 1]
+    b = [x for x in a if x < 0.85]
     b = np.array(b)
     sort_index_array = np.argsort(b)
     sorted_array = b[sort_index_array]

@@ -8,7 +8,11 @@ def correct_letter(text,URL="http://epistolarita-develop.kube.simultech.it/spell
     :return: corrected text
     """
     dict  = {"transcription":text}
-    response = requests.post(url=URL, json=dict)
+    if not isinstance(dict["transcription"],str):
+        dict["transcription"]=" ".join(dict["transcription"])
+        response = requests.post(url=URL, json=dict)
+    else:
+        response = requests.post(url=URL, json=dict)
     return response.json()['translation']
 
 

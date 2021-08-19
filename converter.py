@@ -29,7 +29,26 @@ def calculate_vec(converted_df,ft,tf_idf_matrix,column_df):
         names_col_list.append(single_name_list)
     flat_list = [item for sublist in dict_list for item in sublist]
     total_name_list = [item for sublist in names_col_list for item in sublist]
-    df = pd.DataFrame(flat_list,index=total_name_list)
-    return df
+    dict = {"title":column_df,"value":flat_list}
+    #df = pd.DataFrame(flat_list,index=total_name_list,columns=[column_df])
+    return dict,total_name_list
+
+def total_w2vec(converted_df,ft,tf_idf_matrix):
+    dict_list = []
+    counter = 0
+    dict = {}
+    total_name_list = []
+    t = tf_idf_matrix.index.to_list()
+    for letter_title in t:
+            del dict
+            del total_name_list
+            dict,total_name_list = calculate_vec(converted_df, ft, tf_idf_matrix, column_df=letter_title)
+            dict_list.append(dict["value"])
+            print(counter+1)
+            counter = counter + 1
+    total_df = pd.DataFrame(dict_list,index = t,columns=total_name_list)
+    print (total_df.shape)
+    return total_df
+
 
 

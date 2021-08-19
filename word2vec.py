@@ -12,6 +12,12 @@ from src import cleaner
 import treetaggerwrapper
 from src import cleaner
 import converter
+import corrector
+from src import cleaner
+from stop_words import get_stop_words
+
+
+
 
 def avg_w2vec(tf_idf_matrix,model):
     """
@@ -74,24 +80,47 @@ def graph_to_pandas(graph):
 
 if __name__ == '__main__':
     start = datetime.now()
+    db = False
     conf = connection.get_conf()
-    graph = connection.connect(conf)
-    df = graph_to_pandas(graph)
-    testo = conf.get("ITEMS","testo")
     main_path = os.getcwd()
     path = os.path.dirname(os.getcwd())
-    df = df[df['transcription'].notna()]
-    row_id = df['letter_id'].values
     ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
-    df_read = pd.read_excel(main_path + conf.get("INPUT","lemmatized"))
-    cleaned_corpus = df_read.transcription.values.astype('U')
-    df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus,rownames=row_id) # rownames = row_id when switched to db
+    tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
+    if db:
+        graph = connection.connect(conf)
+        df = graph_to_pandas(graph)
+        testo = conf.get("ITEMS","testo")
+        df = df[df['transcription'].notna()]
+        row_id = df['letter_id'].values
+        df_read = pd.read_excel(main_path + conf.get("INPUT","lemmatized"))
+        cleaned_corpus = df_read.transcription.values.astype('U')
+    else:
+        df_read = pd.read_excel(os.getcwd() + conf.get("INPUT", "metadati"),sheet_name=2)
+        row_id = df_read['id_lettera'].values
+        #df_read = pd.read_excel(main_path + conf.get("INPUT", "lemmatized_old"))
+        testo = []
+        stopwords = get_stop_words('it')
+        stopwords = cleaner.add_stopwords(main_path + '/data/stp-aggettivi.txt', stopwords=stopwords)
+        stopwords = cleaner.add_stopwords(main_path + '/data/stp-varie.txt', stopwords=stopwords)
+        stopwords = cleaner.add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
+        cleaned_corpus = cleaner.clean_text(df_read, stopwords=stopwords, tagger=tagger, column='testo')
+        counter = 0
+        for row in cleaned_corpus:
+            row = cleaner.removeNonAlpha(row)
+            json = corrector.correct_letter(row)
+            testo.append(json)
+            print(counter)
+            counter = counter +1
+        #df_final = pd.DataFrame(testo,index=df_read['id_lettera'])
+
+    # @@@@@@@@@@ IF CHANGED TO DB = True CHANGE "testo" with "cleaned_corpus" !!!!
+    df_tf_idf, raw_matrix = calculate_tf_idf(corpus=testo,rownames=row_id) # rownames = row_id when switched to db
     converted_df = converter.calculate_dataframe(df_tf_idf,model=ft)
-    df_mix = converter.calculate_vec(converted_df, ft, df_tf_idf, "Giorgio Vasari-Cosimo De' Medici-11/09/1569-1281")
-    final_result = avg_w2vec(df_tf_idf,model=ft)
-    cosine_sim = np.round(cosine_similarity(final_result, final_result),3)
+    total_big_df = converter.total_w2vec(converted_df, ft, df_tf_idf)
+    #final_result = avg_w2vec(df_tf_idf,model=ft)
+    cosine_sim = np.round(cosine_similarity(total_big_df, total_big_df),3)
     df_cosine = pd.DataFrame(cosine_sim, index=row_id,columns=[row_id])
-    df_cosine.to_excel(os.getcwd()+conf.get("OUTPUT","second_algorithm")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
+    df_cosine.to_excel(os.getcwd()+conf.get("OUTPUT","bigw2vec")+datetime.now().strftime("%d-%m-%y-%H-%M-%S")+".xlsx")
     a = df_cosine.to_numpy().flatten()
     b = [x for x in a if x < 0.85]
     b = np.array(b)

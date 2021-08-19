@@ -1,4 +1,4 @@
-from word2vec import add_stopwords, clean_text
+from src.cleaner import add_stopwords, clean_text
 import pandas as pd
 import numpy as np
 import fasttext.util
@@ -25,7 +25,7 @@ def save_lemmatized_text(df,cleaned_coprus,column_name='testo',save=True):
     del df[column_name]
     df[column_name] = cleaned_coprus
     if save:
-        df.to_excel(main_path+'/data/df_lemmatized.xlsx',index=False)
+        df.to_excel(main_path+'/data/df_lemmatized_old.xlsx',index=False)
     return df
 
 
@@ -62,7 +62,7 @@ def calculate_similarity(new_letter, old_letter, fasttext, neighbors=10):
 
 dict_list = []
 if __name__ == '__main__':
-    df = pd.read_excel(os.getcwd() + conf.get("INPUT", "lemmatized"))
+    df = pd.read_excel(os.getcwd() + conf.get("INPUT", "metadati"),sheet_name=2)
     df = df[df['testo'].notna()]
     df = df.set_index('id_lettera')
     row_id = df.index
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     tagger = treetaggerwrapper.TreeTagger(TAGLANG="it")
     ft = fasttext.load_model(main_path + '/data/cc.it.300.bin')
     cleaned_corpus = clean_text(df, stopwords=stopwords, tagger=tagger, column='testo')
-    df = save_lemmatized_text(df=df, cleaned_coprus=cleaned_corpus, column_name='testo', save=False)
+    df = save_lemmatized_text(df=df, cleaned_coprus=cleaned_corpus, column_name='testo', save=True)
     for i in range(df.shape[0]):
         print("i ="+str(i))
         final_list, similarity_value = calculate_similarity(df.loc[row_id[i],'testo'],df.loc['Michelangelo21','testo'],fasttext=ft)

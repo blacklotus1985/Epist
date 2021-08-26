@@ -71,8 +71,12 @@ def clean_text(df,stopwords,tagger,column='testo'):
     cleaned_corpus = []
     for elem in df[column]:
         elem = removeNonAlpha(elem)
+        elem = corrector.correct_letter(elem,debug=False)
         elem = lemmatize(elem,tagger)
         elem = removeStopWords(elem,stopwords=stopwords)
-        elem = corrector.correct_letter(elem)
         cleaned_corpus.append(elem)
     return cleaned_corpus
+
+
+
+

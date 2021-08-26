@@ -80,7 +80,9 @@ def graph_to_pandas(graph):
 
 if __name__ == '__main__':
     start = datetime.now()
+    print ("algorithm started at {}".format(start))
     db = False
+    paragaph = True
     conf = connection.get_conf()
     main_path = os.getcwd()
     path = os.path.dirname(os.getcwd())
@@ -95,26 +97,36 @@ if __name__ == '__main__':
         df_read = pd.read_excel(main_path + conf.get("INPUT","lemmatized"))
         cleaned_corpus = df_read.transcription.values.astype('U')
     else:
+        print("started reading metadati")
         df_read = pd.read_excel(os.getcwd() + conf.get("INPUT", "metadati"),sheet_name=2)
+        if paragaph:
+            df_read['testo'] = df_read['testo'].str.replace('\r', ' ').str.split('\n')
+            df_read = df_read.explode('testo')
+        #res = cleaner.split_paragraphs(df_read.loc[66,"testo"])
         row_id = df_read['id_lettera'].values
         #df_read = pd.read_excel(main_path + conf.get("INPUT", "lemmatized_old"))
         testo = []
+        print("started stopwords")
         stopwords = get_stop_words('it')
         stopwords = cleaner.add_stopwords(main_path + '/data/stp-aggettivi.txt', stopwords=stopwords)
         stopwords = cleaner.add_stopwords(main_path + '/data/stp-varie.txt', stopwords=stopwords)
         stopwords = cleaner.add_stopwords(main_path + '/data/stp-verbi.txt', stopwords=stopwords)
         cleaned_corpus = cleaner.clean_text(df_read, stopwords=stopwords, tagger=tagger, column='testo')
         counter = 0
+        """
         for row in cleaned_corpus:
             row = cleaner.removeNonAlpha(row)
-            json = corrector.correct_letter(row)
+            json = corrector.correct_letter(row,debug=False)
             testo.append(json)
             print(counter)
             counter = counter +1
+            print(counter)
         #df_final = pd.DataFrame(testo,index=df_read['id_lettera'])
+        """
 
     # @@@@@@@@@@ IF CHANGED TO DB = True CHANGE "testo" with "cleaned_corpus" !!!!
-    df_tf_idf, raw_matrix = calculate_tf_idf(corpus=testo,rownames=row_id) # rownames = row_id when switched to db
+    print("started tf idf calc")
+    df_tf_idf, raw_matrix = calculate_tf_idf(corpus=cleaned_corpus,rownames=row_id) # rownames = row_id when switched to db
     converted_df = converter.calculate_dataframe(df_tf_idf,model=ft)
     total_big_df = converter.total_w2vec(converted_df, ft, df_tf_idf)
     #final_result = avg_w2vec(df_tf_idf,model=ft)
